@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRADE 3..Train now, win later!🚀 تدرّب الآن، لتفوز لاحقاً!</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+Arabic:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+            background-color: #f7f9fc;
+        }
+
+        .arabic-text {
+            direction: rtl;
+            text-align: right;
+        }
+
+        .shadow-neon {
+            box-shadow: 0 4px 15px rgba(100, 100, 255, 0.4);
+        }
+
+        .answer-btn {
+            transition: all 0.2s;
+            text-align: left;
+        }
+        
+        .arabic-text-btn {
+            text-align: right;
+        }
+
+        .answer-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .answer-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+        
+        .hint-btn {
+            background-color: #facc15; 
+            color: #1f2937;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        .hint-btn:hover {
+            background-color: #eab308;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div id="quiz-container" class="w-full max-w-md bg-white p-6 md:p-8 rounded-xl shadow-neon border border-blue-100">
+
+        <div id="content"></div>
+
+    </div>
+
+    <div id="tempMessageBoxContainer"></div>
+
+    <script>
+        // Global State Variables
+        let userName = '';
+        let currentTopic = '';
+        let questionIndex = 0;
+        let score = 0;
+        let feedback = []; 
+        let currentQuestionSet = [];
+        let attemptsMade = 0;
+        let hintUsed = false;
+        let currentSetIndex = 0; 
+
+        // 🛑 رابط الصورة الخارجي المضمون (سيتم فتحه في نافذة جديدة)
+        const CHART_IMAGE_URL = 'https://res.cloudinary.com/dvvvpimum/image/upload/v1761231005/bar_byabny.png'; 
+
+        // --- Question Bank (Finalized Sets) ---
+        const QUESTION_SETS = {
+            'CCDI': [
+                // Set 1: Data Visualization Analysis (5 Questions based on Bar Chart)
+                [
+                    { 
+                        q_en: "Viewing the chart (Books read in the summer holiday): Who read the greatest number of books?", 
+                        q_ar: "بالنظر إلى الرسم البياني: من هو الشخص الذي قرأ أكبر عدد من الكتب؟", 
+                        options: ["Sally (سالي)", "Fred (فريد)", "Omi (أومي)"], 
+                        correct: "Omi (أومي)", 
+                        explanation_en: "Omi's bar is the tallest, reaching 8 books, which is the maximum value in the chart.", 
+                        explanation_ar: "عمود أومي هو الأطول، حيث يصل إلى 8 كتب، وهي القيمة الأكبر في الرسم البياني.", 
+                        hint_en: "Look for the tallest bar.",
+                        hint_ar: "ابحث عن أطول عمود.",
+                        point: 1,
+                        // 🛑 تم تغيير image_url إلى image_link
+                        image_link: CHART_IMAGE_URL 
+                    },
+                    { 
+                        q_en: "Which step in the Design Process involves generating many ideas for a solution?", 
+                        q_ar: "أي خطوة في عملية التصميم تتضمن توليد العديد من الأفكار للحل؟", 
+                        options: ["Ask (اسأل)", "Plan (خطط)", "Imagine (تخيل)"], 
+                        correct: "Imagine (تخيل)", 
+                        explanation_en: "The **Imagine** step is where we brainstorm and think of many possible solutions.", 
+                        explanation_ar: "خطوة **التخيل** هي حيث نتخيل ونفكر في العديد من الأفكار التي يمكن أن تكون حلولاً جيدة.", 
+                        hint_en: "This step is about creativity and possibility.",
+                        hint_ar: "هذه الخطوة تدور حول الخيال والإبداع.",
+                        point: 1 
+                    },
+                    { 
+                        q_en: "Viewing the chart: How many books did Fred read?", 
+                        q_ar: "بالنظر إلى الرسم البياني: كم عدد الكتب التي قرأها فريد؟", 
+                        options: ["5 books (5 كتب)", "6 books (6 كتب)", "7 books (7 كتب)"], 
+                        correct: "7 books (7 كتب)", 
+                        explanation_en: "The blue bar for Fred aligns with the number 7 on the vertical axis (y-axis).", 
+                        explanation_ar: "العمود الأزرق الخاص بفريد يتطابق مع الرقم 7 على المحور الرأسي (المحور y).", 
+                        hint_en: "Follow Fred's bar across to the 'Number of books read' axis.",
+                        hint_ar: "اتبع عمود فريد وصولاً إلى محور 'عدد الكتب المقروءة'.",
+                        point: 1 
+                    },
+                    { 
+                        q_en: "What is the total number of books read by both Maya and Lucas?", 
+                        q_ar: "ما هو العدد الإجمالي للكتب التي قرأها كل من مايا ولوكاس معاً؟", 
+                        options: ["10 books (10 كتب)", "12 books (12 كتاباً)", "14 books (14 كتاباً)"], 
+                        correct: "12 books (12 كتاباً)", 
+                        explanation_en: "Maya read 6 books and Lucas read 6 books. 6 + 6 = 12.", 
+                        explanation_ar: "قرأت مايا 6 كتب وقرأ لوكاس 6 كتب. المجموع هو 12.", 
+                        hint_en: "Add the values of the yellow bar and the pink bar.",
+                        hint_ar: "اجمع قيم العمود الأصفر والعمود الوردي.",
+                        point: 1 
+                    },
+                    { 
+                        q_en: "Which option shows the correct order of the Design Process steps?", 
+                        q_ar: "أي خيار يوضح الترتيب الصحيح لخطوات عملية التصميم؟", 
+                        options: [
+                            "Imagine, Ask, Plan, Test, Create, Improve", 
+                            "Ask, Imagine, Plan, Create, Test, Improve", 
+                            "Ask, Plan, Imagine, Test, Create, Improve"
+                        ], 
+                        correct: "Ask, Imagine, Plan, Create, Test, Improve", 
+                        explanation_en: "The correct sequence is: Ask, Imagine, Plan, Create, Test, Improve.", 
+                        explanation_ar: "التسلسل الصحيح هو: اسأل، تخيل، خطط، نفذ، اختبر، حسن.", 
+                        hint_en: "It starts with a question and ends with making it better.",
+                        hint_ar: "تبدأ بسؤال وتنتهي بجعل الشيء أفضل.",
+                        point: 1 
+                    }
+                ],
+                // Set 2: (Original Data Concepts set) - لا يوجد صورة هنا
+                [
+                    { q_en: "What type of data is the name 'Mohammed'?", q_ar: "ما هو نوع البيانات للاسم 'محمد'؟", options: ["Number (رقم)", "Text (نص)", "Date (تاريخ)"], correct: "Text (نص)", explanation_en: "Names are made up of letters, which are stored as Text data.", explanation_ar: "الأسماء تتكون من أحرف، والتي يتم تخزينها كبيانات نصية.", hint_en: "Does this information contain only digits?", hint_ar: "هل تحتوي هذه المعلومة على أرقام فقط؟", point: 1 },
+                    { q_en: "What type of data is '15.5' (a measurement)?", q_ar: "ما هو نوع البيانات لـ '15.5' (مثل قياس درجة الحرارة)؟", options: ["Text (نص)", "Date (تاريخ)", "Number (رقم)"], correct: "Number (رقم)", explanation_en: "Measurements and quantities, even with decimals, are classified as Number data.", explanation_ar: "يتم تصنيف القياسات والكميات، حتى مع الفواصل العشرية، كبيانات رقمية.", hint_en: "Can you do math with this data?", hint_ar: "هل يمكنك إجراء عمليات حسابية باستخدام هذه البيانات؟", point: 1 },
+                    { q_en: "Why do we use **Data Visualization** (like charts and graphs)?", q_ar: "لماذا نستخدم **تصور البيانات** (مثل المخططات والرسوم البيانية)؟", options: ["To make the data confusing.", "To help us see patterns and understand the data quickly.", "To hide information."], correct: "To help us see patterns and understand the data quickly.", explanation_en: "Visualizing data transforms complex information into easily understandable charts to spot trends and insights.", explanation_ar: "يحوّل تصور البيانات المعلومات المعقدة إلى مخططات سهلة الفهم لاكتشاف الاتجاهات والرؤى.", hint_en: "It helps people read a big table of numbers much faster.", hint_ar: "يساعد الأشخاص على قراءة جدول كبير من الأرقام بشكل أسرع بكثير.", point: 1 }
+                ]
+            ],
+            // --- AI Questions ---
+            'AI': [
+                // Set 1 (5 Questions based on paragraph)
+                [
+                    { q_en: "What does the abbreviation **AI** stand for?", q_ar: "ماذا يرمز اختصار **AI**؟", options: ["Active Imagination", "Artificial Intelligence", "Advanced Instruction"], correct: "Artificial Intelligence", explanation_en: "**AI** is the abbreviation for **Artificial Intelligence**, which refers to smart machines.", explanation_ar: "AI هو اختصار **للذكاء الاصطناعي**، والذي يشير إلى الآلات الذكية.", hint_en: "It is the technology that makes machines smart like humans.", hint_ar: "إنها التكنولوجيا التي تجعل الآلات ذكية مثل البشر.", point: 1 },
+                    { q_en: "What must AI use to get better at doing its job?", q_ar: "ما الذي يجب أن يستخدمه الذكاء الاصطناعي ليصبح أفضل في عمله؟", options: ["Loud music.", "Data (information).", "Electricity only."], correct: "Data (information).", explanation_en: "AI learns through training on **data** (examples) to improve its accuracy and performance.", explanation_ar: "يتعلم الذكاء الاصطناعي من خلال التدريب على **البيانات** (الأمثلة) لتحسين دقته وأدائه.", hint_en: "What do you call the 'examples' that AI uses to learn?", hint_ar: "ماذا تسمي 'الأمثلة' التي يستخدمها الذكاء الاصطناعي للتعلم؟", point: 1 },
+                    { q_en: "Who teaches robots how to behave?", q_ar: "من الذي يعلم الروبوتات كيف تتصرف؟", options: ["Other robots", "The weather", "People (الناس)"], correct: "People (الناس)", explanation_en: "People create and train the AI.", explanation_ar: "الناس هم من يقومون بإنشاء وتدريب الآلة.", hint_en: "Think about who creates and trains the AI.", hint_ar: "فكر في من يقوم بإنشاء وتدريب الذكاء الاصطناعي.", point: 1 },
+                    { q_en: "What is **Data** in the simplest terms?", q_ar: "ما هي **البيانات** بأبسط العبارات؟", options: ["Old machines.", "The biggest challenge.", "Information (like pictures or answers)."], correct: "Information (like pictures or answers).", explanation_en: "Data is simply the information that AI processes.", explanation_ar: "البيانات هي ببساطة المعلومات - مثل النصوص، الصور، أو الأصوات - التي يعالجها الذكاء الاصطناعي.", hint_en: "It's what we give to the AI to read and see.", hint_ar: "إنه ما نقدمه للذكاء الاصطناعي ليقرأه ويراه.", point: 1 },
+                    { q_en: "What happens if we don’t teach AI well?", q_ar: "ماذا يحدث إذا لم نقم بتعليم الذكاء الاصطناعي جيداً؟", options: ["It becomes smarter", "It makes mistakes (wrong thing)", "It takes a vacation"], correct: "It makes mistakes (wrong thing)", explanation_en: "Poor training data leads to incorrect decisions (mistakes).", explanation_ar: "التدريب الرديء يؤدي إلى اتخاذ قرارات خاطئة (أخطاء).", hint_en: "Think about the consequence of poor training data.", hint_ar: "فكر في نتيجة التدريب ببيانات رديئة.", point: 1 }
+                ],
+            ]
+        };
+
+
+        // --- Application Flow Functions ---
+
+        /**
+         * Step 1: Show bilingual welcome message and name input.
+         */
+        function showWelcomeScreen() {
+            document.getElementById('content').innerHTML = `
+                <h1 class="text-2xl font-bold text-center text-blue-600 mb-6">🚀 Grade 3...Train now, win later!🚀 تدرّب الآن، لتفوز لاحقاً!</h1>
+                
+                <p class="text-gray-700 text-base mb-4 text-center">
+                    👋 Welcome! What's your name? / مرحباً! ما هو اسمك؟
+                </p>
+                
+                <input type="text" id="nameInput" placeholder="Your Name / اسمك"
+                    class="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                
+                <p class="text-center font-semibold mb-3">Choose your topic / اختر موضوعك:</p>
+                <button onclick="selectTopic('CCDI', 0)" 
+                        class="w-full p-3 mb-3 bg-indigo-500 text-white font-semibold rounded-lg hover:bg-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-300 answer-btn arabic-text-btn">
+                    Start CCDI Quiz (Data Concepts)
+                </button>
+                
+                <button onclick="selectTopic('AI', 0)" 
+                        class="w-full p-3 bg-purple-500 text-white font-semibold rounded-lg hover:bg-purple-600 focus:outline-none focus:ring-4 focus:ring-purple-300 answer-btn arabic-text-btn">
+                    Start AI Quiz (Artificial Intelligence)
+                </button>
+            `;
+        }
+
+        /**
+         * Step 2: Set topic and start the quiz.
+         */
+        function selectTopic(topic, setIndex = 0) {
+            const nameInput = document.getElementById('nameInput');
+
+            if (nameInput) {
+                userName = nameInput.value.trim();
+                if (!userName) {
+                    nameInput.classList.add('border-red-500', 'ring-red-200');
+                    showTemporaryMessage("Please enter your name first. / الرجاء إدخال اسمك أولاً.", 'error');
+                    return;
+                }
+            } else if (!userName) {
+                showTemporaryMessage("Error: User name not set. Returning to start.", 'error');
+                showWelcomeScreen();
+                return;
+            }
+
+            currentTopic = topic;
+            currentSetIndex = setIndex; 
+            currentQuestionSet = QUESTION_SETS[topic][setIndex % QUESTION_SETS[topic].length]; 
+            questionIndex = 0;
+            score = 0;
+            feedback = [];
+            attemptsMade = 0; 
+            hintUsed = false;
+            
+            showQuestion();
+        }
+
+        /**
+         * Step 10: Show the current question (one by one).
+         */
+        function showQuestion() {
+            if (questionIndex >= currentQuestionSet.length) {
+                showResults();
+                return;
+            }
+
+            const currentQ = currentQuestionSet[questionIndex];
+            const topicName = currentTopic === 'CCDI' ? 'Data Concepts (CCDI)' : 'Artificial Intelligence (AI)';
+            attemptsMade = 0; 
+            hintUsed = false; 
+
+            let optionsHtml = '';
+            // Shuffle options for better interactivity
+            const shuffledOptions = [...currentQ.options].sort(() => Math.random() - 0.5);
+
+            shuffledOptions.forEach((option, index) => {
+                const safeOption = option.replace(/'/g, "\\'").replace(/"/g, '\\"');
+                optionsHtml += `
+                    <button id="option-${index}" onclick="submitAnswer('${safeOption}')"
+                            data-option="${safeOption}"
+                            class="answer-btn w-full p-3 my-2 bg-gray-100 text-gray-800 rounded-lg transition duration-150 ease-in-out hover:bg-blue-100 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 arabic-text-btn">
+                        ${String.fromCharCode(65 + index)}. ${option}
+                    </button>
+                `;
+            });
+            
+            // 🛑 Logic to display the clickable link only for the first CCDI question 🛑
+            let imageHtml = '';
+            if (currentQ.image_link && currentTopic === 'CCDI' && questionIndex < 5) {
+                 imageHtml = `
+                    <div class="mb-4 p-4 bg-yellow-50 border border-yellow-300 rounded-lg text-center">
+                        <p class="font-bold text-lg text-yellow-800 mb-2 arabic-text">
+                            🚨 لعرض الصورة للإجابة على هذا السؤال والأسئلة الأربعة التالية 🚨
+                        </p>
+                        <a href="${currentQ.image_link}" target="_blank" 
+                           class="inline-block p-3 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition duration-150">
+                           اضغط هنا لمشاهدة الرسم البياني في نافذة جديدة
+                        </a>
+                        <p class="text-sm mt-2 text-yellow-700 arabic-text">
+                            (بعد المشاهدة، عد إلى هذه الصفحة للمتابعة)
+                        </p>
+                    </div>`;
+            }
+
+
+            document.getElementById('content').innerHTML = `
+                <h2 class="text-xl font-bold text-center text-blue-600 mb-4">${topicName} Quiz 📝</h2>
+                <div class="mb-4 text-center">
+                    <p class="text-sm text-gray-500">Question ${questionIndex + 1} of ${currentQuestionSet.length}</p>
+                    <div class="w-full h-1 bg-blue-200 rounded-full overflow-hidden mt-1">
+                        <div class="h-1 bg-blue-500" style="width: ${((questionIndex + 1) / currentQuestionSet.length) * 100}%"></div>
+                    </div>
+                </div>
+                
+                ${imageHtml}
+                
+                <div class="p-4 bg-blue-50 rounded-lg mb-6 border border-blue-200">
+                    <p class="mb-2 font-semibold text-gray-800 text-lg">${currentQ.q_en}</p>
+                    <p class="arabic-text font-semibold text-gray-800 text-lg">${currentQ.q_ar}</p>
+                </div>
+
+                <div class="space-y-2" id="optionsContainer">
+                    ${optionsHtml}
+                </div>
+                
+                <div id="hintContainer" class="mt-4 text-center">
+                    <button id="hintButton" onclick="showHint()" 
+                            class="hint-btn p-2 px-4 rounded-lg focus:outline-none focus:ring-4 focus:ring-yellow-300 transition duration-150">
+                        💡 تلميح (Hint)
+                    </button>
+                </div>
+                
+                <div id="messageBox" class="mt-4 hidden p-3 rounded-lg text-center font-medium"></div>
+                
+                <div id="explanationBox" class="mt-4 hidden p-4 rounded-lg"></div>
+                
+                <div id="nextButtonContainer" class="mt-4"></div>
+            `;
+        }
+
+        /**
+         * Displays the hint for the current question in a temporary message box.
+         */
+        window.showHint = function() {
+            const currentQ = currentQuestionSet[questionIndex];
+            hintUsed = true;
+            document.getElementById('hintButton').disabled = true; // Disable hint after use
+            
+            const hintMessage = `
+                <p class="mb-1 text-sm font-bold">Hint (تلميح):</p>
+                <p class="text-xs">${currentQ.hint_en || 'No hint available.'}</p>
+                <p class="arabic-text text-xs">${currentQ.hint_ar || 'لا يوجد تلميح.'}</p>
+            `;
+            showTemporaryMessage(hintMessage, 'hint');
+        }
+
+        /**
+         * Handle user answer submission with a retry mechanism.
+         */
+        function submitAnswer(selectedOption) {
+            const currentQ = currentQuestionSet[questionIndex];
+            const isCorrect = (selectedOption === currentQ.correct);
+            const messageBox = document.getElementById('messageBox');
+            const explanationBox = document.getElementById('explanationBox');
+            const optionsContainer = document.getElementById('optionsContainer');
+            const nextButtonContainer = document.getElementById('nextButtonContainer');
+            const hintButton = document.getElementById('hintButton');
+            
+            if (hintButton) hintButton.style.display = 'none';
+
+            Array.from(optionsContainer.querySelectorAll('button')).forEach(btn => {
+                btn.classList.remove('bg-blue-200', 'ring-2', 'ring-blue-500');
+                if (btn.getAttribute('data-option') === selectedOption) {
+                    btn.classList.add('bg-blue-200', 'ring-2', 'ring-blue-500');
+                }
+                btn.disabled = true;
+            });
+
+            const showFeedbackAndProceed = (correct) => {
+                Array.from(optionsContainer.querySelectorAll('button')).forEach(btn => btn.disabled = true);
+                
+                explanationBox.classList.remove('hidden');
+                explanationBox.innerHTML = `
+                    <p class="font-bold mb-1 text-gray-900">Explanation / الشرح:</p>
+                    <p class="text-sm text-gray-700">${currentQ.explanation_en}</p>
+                    <p class="arabic-text text-sm text-gray-700">${currentQ.explanation_ar}</p>
+                `;
+
+                if (correct) {
+                    messageBox.className = 'mt-4 block p-3 rounded-lg text-center font-medium bg-emerald-100 text-emerald-800';
+                    messageBox.innerHTML = `✅ Correct! (${attemptsMade === 1 ? 'on second try' : 'on first try'}) / إجابة صحيحة! 🎉 (${attemptsMade === 1 ? 'في المحاولة الثانية' : 'في المحاولة الأولى'})`;
+                    explanationBox.className = 'mt-4 block p-4 rounded-lg bg-emerald-50 border border-emerald-300';
+                    
+                    Array.from(optionsContainer.querySelectorAll('button')).forEach(btn => {
+                        if (btn.getAttribute('data-option') === currentQ.correct) {
+                            btn.classList.add('bg-emerald-200', 'text-emerald-900');
+                            btn.classList.remove('bg-gray-100', 'hover:bg-blue-100', 'bg-blue-200', 'ring-2', 'ring-blue-500');
+                        }
+                    });
+                } else {
+                    messageBox.className = 'mt-4 block p-3 rounded-lg text-center font-medium bg-rose-100 text-rose-800';
+                    messageBox.innerHTML = `❌ Still incorrect. The correct answer is: <b>${currentQ.correct}</b>. / لا تزال خاطئة. الإجابة الصحيحة هي: <b>${currentQ.correct}</b>.`;
+                    explanationBox.className = 'mt-4 block p-4 rounded-lg bg-rose-50 border border-rose-300';
+                    
+                    Array.from(optionsContainer.querySelectorAll('button')).forEach(btn => {
+                        if (btn.getAttribute('data-option') === currentQ.correct) {
+                            btn.classList.add('bg-emerald-200', 'text-emerald-900');
+                        } else if (btn.getAttribute('data-option') === selectedOption) {
+                            btn.classList.add('bg-rose-200', 'text-rose-900');
+                        }
+                        btn.classList.remove('bg-gray-100', 'hover:bg-blue-100', 'bg-blue-200', 'ring-2', 'ring-blue-500');
+                    });
+                }
+                
+                feedback.push({
+                    question: currentQ.q_en,
+                    selected: selectedOption,
+                    correct: currentQ.correct,
+                    isCorrect: correct,
+                    explanation_en: currentQ.explanation_en,
+                    explanation_ar: currentQ.explanation_ar,
+                    hintUsed: hintUsed
+                });
+
+                addNextButton(nextButtonContainer);
+            };
+
+
+            if (isCorrect) {
+                score += currentQ.point || 1;
+                showFeedbackAndProceed(true);
+
+            } else {
+                attemptsMade++;
+                
+                if (attemptsMade === 1) {
+                    messageBox.className = 'mt-4 block p-3 rounded-lg text-center font-medium bg-yellow-100 text-yellow-700';
+                    messageBox.innerHTML = '❌ Incorrect. Try again! / خطأ. حاول مرة أخرى! 💡';
+
+                    Array.from(optionsContainer.querySelectorAll('button')).forEach(btn => {
+                        btn.disabled = false; 
+                        btn.classList.remove('bg-blue-200', 'ring-2', 'ring-blue-500'); 
+                    });
+
+                } else {
+                    showFeedbackAndProceed(false);
+                }
+            }
+        }
+        
+        /**
+         * Helper function to add the next button after an answer is final.
+         */
+        function addNextButton(container) {
+            container.innerHTML = '';
+            const nextButton = document.createElement('button');
+            nextButton.textContent = 'Next Question / السؤال التالي ➡️';
+            nextButton.onclick = () => {
+                questionIndex++;
+                showQuestion();
+            };
+            nextButton.className = 'w-full p-3 mt-4 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-300 answer-btn arabic-text-btn';
+            container.appendChild(nextButton);
+        }
+
+        /**
+         * Display results, feedback, and encouragement.
+         */
+        function showResults() {
+            const totalQuestions = currentQuestionSet.length;
+            const percentage = Math.round((score / totalQuestions) * 100);
+            let encouragement = '';
+            
+            if (percentage === 100) {
+                encouragement = "Amazing job, ${userName}! You nailed it! 🌟 / عمل رائع، ${userName}! لقد نجحت بامتياز! 🤩";
+            } else if (percentage >= 60) {
+                encouragement = "Great effort, ${userName}! You are doing well. Keep going! 👍 / جهد عظيم، ${userName}! أنت تسير بشكل جيد. استمر! 💪";
+            } else {
+                encouragement = "Good start, ${userName}! Learning is a journey, keep practicing! 💡 / بداية جيدة، ${userName}! التعلم رحلة، استمر في التدريب! 📚";
+            }
+            
+            encouragement = encouragement.replace(/\$\{(\w+)\}/g, (_, key) => {
+                if (key === 'userName') return userName;
+                return '';
+            });
+
+            let feedbackHtml = feedback.map((f, index) => `
+                <div class="p-3 my-3 rounded-lg ${f.isCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'} border arabic-text">
+                    <p class="font-bold text-sm">Q${index + 1}: ${f.question}</p>
+                    <p class="text-xs text-gray-700">Your Answer / إجابتك: 
+                        <span class="${f.isCorrect ? 'text-emerald-700' : 'text-rose-700'} font-medium">${f.selected}</span>
+                    </p>
+                    <p class="text-xs text-gray-600">Hint Used / تم استخدام التلميح: ${f.hintUsed ? 'Yes (نعم)' : 'No (لا)'}</p>
+                    ${!f.isCorrect ? `
+                        <p class="text-xs text-rose-800 font-bold mt-1">Correct Answer / الإجابة الصحيحة: ${f.correct}</p>
+                        <p class="text-xs text-rose-800 font-medium mt-2">Feedback / شرح الخطأ:</p>
+                        <p class="text-xs text-rose-700">${f.explanation_en}</p>
+                        <p class="arabic-text text-xs text-rose-700">${f.explanation_ar}</p>
+                    ` : ''}
+                </div>
+            `).join('');
+
+            document.getElementById('content').innerHTML = `
+                <h2 class="text-2xl font-extrabold text-center text-blue-600 mb-6">Results for ${userName}</h2>
+                <h2 class="text-2xl font-extrabold arabic-text text-center text-blue-600 mb-6">نتائج ${userName}</h2>
+
+                <div class="text-center p-4 bg-blue-100 rounded-lg mb-6 shadow-md">
+                    <p class="text-lg font-semibold text-gray-800">Your Score: ${score} out of ${totalQuestions}</p>
+                    <p class="text-lg font-semibold arabic-text text-gray-800">درجتك: ${score} من ${totalQuestions}</p>
+                    <p class="text-4xl font-bold text-blue-700 mt-2">${percentage}%</p>
+                </div>
+                
+                <p class="text-lg text-center font-bold mb-6 text-indigo-600">${encouragement}</p>
+
+
+                <h3 class="text-xl font-bold text-gray-700 mb-3 border-b pb-2 arabic-text">Full Review / المراجعة الكاملة:</h3>
+                <div class="max-h-60 overflow-y-auto mb-6">
+                    ${feedbackHtml}
+                </div>
+
+                <div class="mt-8">
+                    <p class="text-center font-semibold mb-3 arabic-text">Do you want to continue practicing? / هل تريد الاستمرار في التدريب؟</p>
+                    <div class="flex space-x-4 space-x-reverse justify-center">
+                        <button onclick="handleContinue(true)" 
+                                class="w-1/2 p-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 answer-btn arabic-text-btn">
+                            Yes / نعم
+                        </button>
+                        <button onclick="handleContinue(false)" 
+                                class="w-1/2 p-3 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 answer-btn arabic-text-btn">
+                            No / لا
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Handle continue or stop logic.
+         */
+        function handleContinue(continuePractice) {
+            if (continuePractice) {
+                // Determine the next set index 
+                const currentSetIndex = QUESTION_SETS[currentTopic].findIndex(set => set === currentQuestionSet);
+                const nextSetIndex = (currentSetIndex + 1) % QUESTION_SETS[currentTopic].length;
+                
+                // Call selectTopic with the correct index to load the next set
+                selectTopic(currentTopic, nextSetIndex);
+            } else {
+                // Goodbye Message
+                document.getElementById('content').innerHTML = `
+                    <h2 class="text-3xl font-bold text-center text-blue-600 mb-6">Quiz Ended 🥳</h2>
+                    <p class="text-xl text-gray-700 text-center mb-6">
+                        👋 Goodbye, ${userName}! See you next time!
+                    </p>
+                    <p class="arabic-text text-xl text-gray-700 text-center mb-12">
+                        إلى اللقاء، ${userName}! نراك لاحقاً! 👋
+                    </p>
+                    <button onclick="showWelcomeScreen()" 
+                            class="w-full p-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 answer-btn arabic-text-btn">
+                        Start New Quiz / ابدأ اختبار جديد
+                    </button>
+                `;
+            }
+        }
+        
+        /**
+         * --- Temporary Message Box (Replaces alert()) ---
+         */
+        function showTemporaryMessage(message, type = 'info') {
+            const container = document.getElementById('tempMessageBoxContainer');
+            let messageBox = document.getElementById('tempMessageBox');
+
+            if (!messageBox) {
+                messageBox = document.createElement('div');
+                messageBox.id = 'tempMessageBox';
+                // Initially off-screen
+                messageBox.className = 'fixed top-4 right-4 p-4 rounded-lg shadow-xl z-50 transition-transform duration-500 transform translate-x-full';
+                container.appendChild(messageBox);
+            }
+
+            let bgColor = 'bg-blue-500';
+            let icon = 'ℹ️';
+            let duration = 3000;
+            
+            if (type === 'error') {
+                bgColor = 'bg-red-500';
+                icon = '❌';
+            } else if (type === 'success') {
+                bgColor = 'bg-green-500';
+                icon = '✅';
+            } else if (type === 'hint') {
+                bgColor = 'bg-yellow-500';
+                icon = '💡';
+                duration = 5000; // Keep hints visible longer
+            }
+
+            // Show message
+            messageBox.className = `fixed top-4 right-4 p-4 rounded-lg shadow-xl z-50 transition-transform duration-500 ${bgColor} text-white font-semibold transform translate-x-0`;
+            messageBox.innerHTML = `${icon} ${message}`;
+
+            // Hide after duration
+            setTimeout(() => {
+                messageBox.classList.add('translate-x-full');
+            }, duration);
+        }
+
+        // Initialize the app using the most robust method: DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', showWelcomeScreen);
+
+    </script>
+</body>
+</html>
